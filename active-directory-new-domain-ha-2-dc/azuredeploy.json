@@ -7,7 +7,7 @@
       "metadata": {
         "description": "The name of the Administrator of the new VM and Domain"
       },
-      "defaultValue": "adAdministrator"
+      "defaultValue": "demouser"
     },
     "adminPassword": {
       "type": "securestring",
@@ -26,37 +26,13 @@
       "metadata": {
         "description": "The DNS prefix for the public IP address used by the Load Balancer"
       }
-    },
-    "pdcRDPPort": {
-      "type": "int",
-      "metadata": {
-        "description": "The public RDP port for the PDC VM"
-      },
-      "defaultValue": 3389
-    },
-    "bdcRDPPort": {
-      "type": "int",
-      "metadata": {
-        "description": "The public RDP port for the BDC VM"
-      },
-      "defaultValue": 13389
-    },
-    "_artifactsLocation": {
-      "type": "string",
-      "metadata": {
-        "description": "The location of resources, such as templates and DSC modules, that the template depends on"
-      },
-      "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/active-directory-new-domain-ha-2-dc"
-    },
-    "_artifactsLocationSasToken": {
-      "type": "securestring",
-      "metadata": {
-        "description": "Auto-generated token to access _artifactsLocation"
-      },
-      "defaultValue": ""
     }
   },
   "variables": {
+    "_artifactsLocationSasToken": null,
+    "_artifactsLocation": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/active-directory-new-domain-ha-2-dc",
+    "bdcRDPPort": 13389,
+    "pdcRDPPort": 3389,
     "vhdStorageAccountName": "[concat('vhds', uniqueString(resourceGroup().id))]",
     "storageAccountType": "Premium_LRS",
     "adPDCVMName": "adPDC",
@@ -75,11 +51,14 @@
     "virtualNetworkAddressRange": "10.0.0.0/16",
     "adSubnetName": "adSubnet",
     "adSubnet": "10.0.0.0/24",
+    "sapSubnetName": "sapSubnet",
+    "sapSubnet": "10.0.1.0/24",
     "adPDCNicName": "adPDCNic",
     "adPDCNicIPAddress": "10.0.0.4",
     "adBDCNicName": "adBDCNic",
     "adBDCNicIPAddress": "10.0.0.5",
     "adSubnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('adSubnetName'))]",
+    "sapSubnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('sapSubnetName'))]",
     "adLBName": "adLoadBalancer",
     "adlbID": "[resourceId('Microsoft.Network/loadBalancers',variables('adLBName'))]",
     "adlbFEConfigID": "[concat(variables('adlbID'),'/frontendIPConfigurations/',variables('adLBFE'))]",
@@ -89,15 +68,15 @@
     "adPDCDataDisk": "ADPDCDataDisk",
     "adBDCDataDisk": "ADBDCDataDisk",
     "adDataDiskSize": 1000,
-    "vnetTemplateUri": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/vnet.json', parameters('_artifactsLocationSasToken'))]",
-    "nicTemplateUri": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/nic.json', parameters('_artifactsLocationSasToken'))]",
-    "vnetwithDNSTemplateUri": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/vnet-with-dns-server.json', parameters('_artifactsLocationSasToken'))]",
-    "configureADBDCTemplateUri": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/configureADBDC.json', parameters('_artifactsLocationSasToken'))]",
-    "adPDCModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/CreateADPDC.zip', parameters('_artifactsLocationSasToken'))]",
+    "vnetTemplateUri": "[concat(variables('_artifactsLocation'),'/nestedtemplates/vnet.json', variables('_artifactsLocationSasToken'))]",
+    "nicTemplateUri": "[concat(variables('_artifactsLocation'),'/nestedtemplates/nic.json', variables('_artifactsLocationSasToken'))]",
+    "vnetwithDNSTemplateUri": "[concat(variables('_artifactsLocation'),'/nestedtemplates/vnet-with-dns-server.json', variables('_artifactsLocationSasToken'))]",
+    "configureADBDCTemplateUri": "[concat(variables('_artifactsLocation'),'/nestedtemplates/configureADBDC.json', variables('_artifactsLocationSasToken'))]",
+    "adPDCModulesURL": "[concat(variables('_artifactsLocation'),'/DSC/CreateADPDC.zip', variables('_artifactsLocationSasToken'))]",
     "adPDCConfigurationFunction": "CreateADPDC.ps1\\CreateADPDC",
-    "adBDCPreparationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/PrepareADBDC.zip', parameters('_artifactsLocationSasToken'))]",
+    "adBDCPreparationModulesURL": "[concat(variables('_artifactsLocation'),'/DSC/PrepareADBDC.zip', variables('_artifactsLocationSasToken'))]",
     "adBDCPreparationFunction": "PrepareADBDC.ps1\\PrepareADBDC",
-    "adBDCConfigurationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/ConfigureADBDC.zip', parameters('_artifactsLocationSasToken'))]",
+    "adBDCConfigurationModulesURL": "[concat(variables('_artifactsLocation'),'/DSC/ConfigureADBDC.zip', variables('_artifactsLocationSasToken'))]",
     "adBDCConfigurationFunction": "ConfigureADBDC.ps1\\ConfigureADBDC"
   },
   "resources": [
@@ -108,8 +87,8 @@
       "location": "[resourceGroup().location]",
       "properties": {
       },
-      "sku":{"name":"[variables('storageAccountType')]"},
-      "kind":"Storage"
+      "sku": { "name": "[variables('storageAccountType')]" },
+      "kind": "Storage"
     },
     {
       "name": "[variables('publicIPAddressName')]",
@@ -146,11 +125,17 @@
           "virtualNetworkAddressRange": {
             "value": "[variables('virtualNetworkAddressRange')]"
           },
-          "subnetName": {
+          "adSubnetName": {
             "value": "[variables('adSubnetName')]"
           },
-          "subnetRange": {
+          "adSubnetRange": {
             "value": "[variables('adSubnet')]"
+          },
+          "sapSubnetName": {
+            "value": "[variables('sapSubnetName')]"
+          },
+          "sapSubnetRange": {
+            "value": "[variables('sapSubnet')]"
           }
         }
       }
@@ -187,7 +172,7 @@
                 "id": "[variables('adlbFEConfigID')]"
               },
               "protocol": "tcp",
-              "frontendPort": "[parameters('pdcRDPPort')]",
+              "frontendPort": "[variables('pdcRDPPort')]",
               "backendPort": 3389,
               "enableFloatingIP": false
             }
@@ -199,7 +184,7 @@
                 "id": "[variables('adlbFEConfigID')]"
               },
               "protocol": "tcp",
-              "frontendPort": "[parameters('bdcRDPPort')]",
+              "frontendPort": "[variables('bdcRDPPort')]",
               "backendPort": 3389,
               "enableFloatingIP": false
             }
@@ -608,5 +593,27 @@
         }
       }
     }
-  ]
+  ],
+  "outputs": {
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    },
+    "adminPassword": {
+      "type": "string",
+      "value": "[parameters('adminPassword')]"
+    },
+    "domainName": {
+      "type": "string",
+      "value": "[parameters('domainName')]"
+    },
+    "dnsPrefix": {
+      "type": "string",
+      "value": "[parameters('dnsPrefix')]"
+    },
+    "sapSubnetId": {
+      "type": "string",
+      "value": "[variables('sapSubnetRef')]"
+    }
+  }
 }
