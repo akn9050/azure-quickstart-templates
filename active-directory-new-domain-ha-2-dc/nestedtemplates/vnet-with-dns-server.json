@@ -40,7 +40,7 @@
         "Description": "The address range of the subnet created in the new VNET"
       },
       "defaultValue": "10.0.1.0/24"
-    }
+    },
     "DNSServerAddress": {
       "type": "array",
       "metadata": {
