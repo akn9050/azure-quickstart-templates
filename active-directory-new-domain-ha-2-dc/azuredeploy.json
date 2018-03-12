@@ -42,7 +42,7 @@
     "imageSKU": "2016-Datacenter",
     "adAvailabilitySetName": "s03-avset-ad",
     "publicIPAddressName": "s03-pip-ad-0",
-    "adVMSize": "Standard_D1_v2",
+    "adVMSize": "Standard_DS2_v2",
     "adLBFE": "LBFE",
     "adLBBE": "LBBE",
     "adPDCRDPNAT": "adPDCRDP",
